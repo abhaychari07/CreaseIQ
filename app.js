@@ -233,16 +233,25 @@ async function runPoseAnalysis({ file, technique, reference, cameraAngle, sessio
       onProgress: message => { document.getElementById('processingCopy').textContent = message; }
     });
     updateDashboardFromReport(report);
+    viewSessionButton.hidden = false;
     if (session) await window.CreaseIQStorage.saveAnalysis({ sessionId: session.id, report });
     const captureNote = report.bowlingCaptureUnverified ? ' We could not automatically verify a full bowling release, so review this report carefully.' : '';
     document.getElementById('processingCopy').textContent = `Analysis complete: ${report.score}/100. We checked ${report.framesChecked} frames and selected the clearest full-body action frame.${captureNote}`;
     document.getElementById('qualityChecks').innerHTML = `<div><span>Video quality</span><span>${report.quality.width}×${report.quality.height}</span></div><div><span>Player coverage</span><span>${report.quality.playerCoverage}%</span></div><div><span>Headroom</span><span>${report.quality.headroom}%</span></div><div><span>Pose coverage</span><span>${report.landmarkCoverage}/9 key points</span></div><div><span>Frames checked</span><span>${report.framesChecked}</span></div><div><span>Action frame</span><span>${report.frameTime}s</span></div><div><span>Confidence</span><span>${report.confidence}</span></div>${report.bowlingCaptureUnverified ? '<div><span>Bowling capture</span><span>Review needed</span></div>' : ''}`;
   } catch (error) {
     if (error.code === 'UNVERIFIED_BOWLING_CAPTURE') {
+      viewSessionButton.hidden = true;
       document.getElementById('processingCopy').textContent = `${error.message} If this is genuinely your bowling clip, confirm below to continue with a report marked for review.`;
-      document.getElementById('qualityChecks').innerHTML = `<div><span>Automatic bowling check</span><span>Needs confirmation</span></div><button class="primary-button analyze-button" id="confirmUnverifiedBowling">Yes, this is bowling — analyse it <span>→</span></button>`;
+      document.getElementById('qualityChecks').innerHTML = `<div><span>Automatic bowling check</span><span>Needs confirmation</span></div><div class="confirmation-actions"><button class="confirmation-secondary" id="rejectUnverifiedBowling">No, change selection</button><button class="primary-button analyze-button" id="confirmUnverifiedBowling">Yes, this is bowling — analyse it <span>→</span></button></div>`;
       document.getElementById('confirmUnverifiedBowling').addEventListener('click', () => {
         runPoseAnalysis({ file, technique, reference, cameraAngle, session, viewSessionButton, allowUnverifiedBowling: true });
+      });
+      document.getElementById('rejectUnverifiedBowling').addEventListener('click', async () => {
+        if (session) await window.CreaseIQStorage.updateSessionStatus(session.id, 'failed').catch(() => {});
+        processingModal.classList.remove('open');
+        viewSessionButton.hidden = false;
+        openUpload();
+        status.textContent = 'Choose the correct analysis type, then start again.';
       });
       return;
     }

@@ -26,10 +26,10 @@ async function containsCricketBat(video) {
   const detector = await getBatDetector();
   if (!detector) return false;
   try {
-    const predictions = await detector.detect(video, 5, 0.45);
+    const predictions = await detector.detect(video, 8, 0.25);
     // COCO calls this a baseball bat; it is the closest available detector for
     // a cricket bat and is used only as a strong batting signal.
-    return predictions.some(prediction => prediction.class === 'baseball bat' && prediction.score >= 0.45);
+    return predictions.some(prediction => prediction.class === 'baseball bat' && prediction.score >= 0.25);
   } catch (_) {
     return false;
   }
@@ -157,7 +157,7 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     let approvedSpinBowlingFrames = 0;
     let batDetectedFrames = 0;
     const bowlingSelection = technique === 'fast-bowling' || technique === 'spin-bowling';
-    const batCheckFrames = new Set([Math.floor(sampleCount * 0.25), Math.floor(sampleCount * 0.5), Math.floor(sampleCount * 0.75)]);
+    const batCheckFrames = new Set([Math.floor(sampleCount * 0.12), Math.floor(sampleCount * 0.3), Math.floor(sampleCount * 0.5), Math.floor(sampleCount * 0.7), Math.floor(sampleCount * 0.88)]);
     for (let index = 0; index < sampleCount; index += 1) {
       const time = video.duration * (0.08 + (0.84 * index / Math.max(sampleCount - 1, 1)));
       onProgress(`Reading body position: frame ${index + 1} of ${sampleCount}...`);
