@@ -155,11 +155,11 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
     }
-    if (technique === 'fast-bowling' && (bowlingActionFrames < 2 || approvedFastBowlingFrames < 2)) {
-      throw new Error(`Fast-bowling analysis needs a clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; move the camera back and keep the whole delivery stride in frame.`);
+    if (technique === 'fast-bowling' && (bowlingActionFrames < 1 || approvedFastBowlingFrames < 1)) {
+      throw new Error(`Fast-bowling analysis needs one clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; keep the release arm, both legs and follow-through visible.`);
     }
-    if (technique === 'spin-bowling' && (bowlingActionFrames < 2 || approvedSpinBowlingFrames < 2)) {
-      throw new Error(`Spin-bowling analysis needs a clear full-body spin release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; move the camera back and keep the release arm, landing foot and follow-through visible.`);
+    if (technique === 'spin-bowling' && (bowlingActionFrames < 1 || approvedSpinBowlingFrames < 1)) {
+      throw new Error(`Spin-bowling analysis needs one clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; keep the release arm, landing foot and follow-through visible.`);
     }
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
     candidates.sort((a, b) => (b.coverage * 10 + b.report.findings.length) - (a.coverage * 10 + a.report.findings.length));
