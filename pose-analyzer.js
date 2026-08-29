@@ -155,18 +155,15 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
     }
-    if (technique === 'fast-bowling' && (bowlingActionFrames < 1 || approvedFastBowlingFrames < 1)) {
-      throw new Error(`Fast-bowling analysis needs one clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; keep the release arm, both legs and follow-through visible.`);
-    }
-    if (technique === 'spin-bowling' && (bowlingActionFrames < 1 || approvedSpinBowlingFrames < 1)) {
-      throw new Error(`Spin-bowling analysis needs one clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; keep the release arm, landing foot and follow-through visible.`);
-    }
+    const bowlingSelection = technique === 'fast-bowling' || technique === 'spin-bowling';
+    const approvedBowlingFrames = technique === 'fast-bowling' ? approvedFastBowlingFrames : approvedSpinBowlingFrames;
+    const bowlingCaptureUnverified = bowlingSelection && (bowlingActionFrames < 1 || approvedBowlingFrames < 1);
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
     candidates.sort((a, b) => (b.coverage * 10 + b.report.findings.length) - (a.coverage * 10 + a.report.findings.length));
     const selected = candidates[0];
     const framing = selected.framing;
     if (framing.headroom < 0.05) throw new Error('Leave more space above the player’s head before recording (at least 5% of the frame height).');
-    return { ...selected.report, frameTime: Number(selected.time.toFixed(2)), framesChecked: sampleCount, landmarkCoverage: selected.coverage, quality: { width: video.videoWidth, height: video.videoHeight, playerCoverage: Math.round(framing.coverage * 100), headroom: Math.round(framing.headroom * 100) } };
+    return { ...selected.report, frameTime: Number(selected.time.toFixed(2)), framesChecked: sampleCount, landmarkCoverage: selected.coverage, bowlingCaptureUnverified, quality: { width: video.videoWidth, height: video.videoHeight, playerCoverage: Math.round(framing.coverage * 100), headroom: Math.round(framing.headroom * 100) } };
   } finally {
     URL.revokeObjectURL(url);
     video.removeAttribute('src'); video.load();

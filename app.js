@@ -234,8 +234,9 @@ async function runPoseAnalysis({ file, technique, reference, cameraAngle, sessio
     });
     updateDashboardFromReport(report);
     if (session) await window.CreaseIQStorage.saveAnalysis({ sessionId: session.id, report });
-    document.getElementById('processingCopy').textContent = `Analysis complete: ${report.score}/100. We checked ${report.framesChecked} frames and selected the clearest full-body action frame.`;
-    document.getElementById('qualityChecks').innerHTML = `<div><span>Video quality</span><span>${report.quality.width}×${report.quality.height}</span></div><div><span>Player coverage</span><span>${report.quality.playerCoverage}%</span></div><div><span>Headroom</span><span>${report.quality.headroom}%</span></div><div><span>Pose coverage</span><span>${report.landmarkCoverage}/9 key points</span></div><div><span>Frames checked</span><span>${report.framesChecked}</span></div><div><span>Action frame</span><span>${report.frameTime}s</span></div><div><span>Confidence</span><span>${report.confidence}</span></div>`;
+    const captureNote = report.bowlingCaptureUnverified ? ' We could not automatically verify a full bowling release, so review this report carefully.' : '';
+    document.getElementById('processingCopy').textContent = `Analysis complete: ${report.score}/100. We checked ${report.framesChecked} frames and selected the clearest full-body action frame.${captureNote}`;
+    document.getElementById('qualityChecks').innerHTML = `<div><span>Video quality</span><span>${report.quality.width}×${report.quality.height}</span></div><div><span>Player coverage</span><span>${report.quality.playerCoverage}%</span></div><div><span>Headroom</span><span>${report.quality.headroom}%</span></div><div><span>Pose coverage</span><span>${report.landmarkCoverage}/9 key points</span></div><div><span>Frames checked</span><span>${report.framesChecked}</span></div><div><span>Action frame</span><span>${report.frameTime}s</span></div><div><span>Confidence</span><span>${report.confidence}</span></div>${report.bowlingCaptureUnverified ? '<div><span>Bowling capture</span><span>Review needed</span></div>' : ''}`;
   } catch (error) {
     if (session) await window.CreaseIQStorage.updateSessionStatus(session.id, 'failed').catch(() => {});
     document.getElementById('processingCopy').textContent = `Analysis could not finish: ${error.message}`;
