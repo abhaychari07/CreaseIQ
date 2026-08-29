@@ -162,7 +162,7 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
       const time = video.duration * (0.08 + (0.84 * index / Math.max(sampleCount - 1, 1)));
       onProgress(`Reading body position: frame ${index + 1} of ${sampleCount}...`);
       await seek(video, time);
-      if (bowlingSelection && batCheckFrames.has(index)) {
+      if (batCheckFrames.has(index)) {
         onProgress(`Checking for a batting bat: frame ${index + 1} of ${sampleCount}...`);
         if (await containsCricketBat(video)) batDetectedFrames += 1;
       }
@@ -182,11 +182,18 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
     }
+    if (isBattingSelection && batDetectedFrames < 1) {
+      throw new Error('This does not look like a batting clip. Record the player, cricket bat and shot clearly before analysing.');
+    }
     if (bowlingSelection && batDetectedFrames >= 1) {
       throw new Error('This clip contains a cricket bat, so it looks like batting. Select Batting before starting analysis.');
     }
     const approvedBowlingFrames = technique === 'fast-bowling' ? approvedFastBowlingFrames : approvedSpinBowlingFrames;
-    const bowlingCaptureUnverified = bowlingSelection && (bowlingActionFrames < 1 || approvedBowlingFrames < 1);
+    if (bowlingSelection && (bowlingActionFrames < 1 || approvedBowlingFrames < 1)) {
+      const bowlingLabel = technique === 'fast-bowling' ? 'Fast-bowling' : 'Spin-bowling';
+      throw new Error(`${bowlingLabel} analysis needs a clear full-body release. This clip does not show a recognisable bowling action.`);
+    }
+    const bowlingCaptureUnverified = false;
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
     candidates.sort((a, b) => (b.coverage * 10 + b.report.findings.length) - (a.coverage * 10 + a.report.findings.length));
     const selected = candidates[0];
