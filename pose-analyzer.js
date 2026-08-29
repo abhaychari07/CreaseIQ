@@ -123,9 +123,9 @@ function looksLikeBowlingAction(landmarks) {
     const elbowRaised = elbow.y < shoulder.y + shoulderWidth * 0.2;
     // A batting follow-through can put a hand above the shoulder. It cannot
     // have the bowling-arm release AND the non-bowling arm pulled down at once.
-    const otherArmPulledDown = otherWrist.y > shoulder.y + shoulderWidth * 0.45;
-    const splitArms = Math.hypot(wrist.x - otherWrist.x, wrist.y - otherWrist.y) > shoulderWidth * 1.25;
-    return overhead && nearVertical && elbowRaised && otherArmPulledDown && splitArms && armReach > shoulderWidth * 0.85;
+    const otherArmPulledDown = otherWrist.y > shoulder.y + shoulderWidth * 0.1;
+    const splitArms = Math.hypot(wrist.x - otherWrist.x, wrist.y - otherWrist.y) > shoulderWidth * 0.7;
+    return overhead && nearVertical && elbowRaised && otherArmPulledDown && splitArms && armReach > shoulderWidth * 0.6;
   });
 }
 
@@ -188,10 +188,9 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (bowlingSelection && batDetectedFrames >= 1) {
       throw new Error('This clip contains a cricket bat, so it looks like batting. Select Batting before starting analysis.');
     }
-    const approvedBowlingFrames = technique === 'fast-bowling' ? approvedFastBowlingFrames : approvedSpinBowlingFrames;
-    if (bowlingSelection && (bowlingActionFrames < 1 || approvedBowlingFrames < 1)) {
+    if (bowlingSelection && bowlingActionFrames < 1) {
       const bowlingLabel = technique === 'fast-bowling' ? 'Fast-bowling' : 'Spin-bowling';
-      throw new Error(`${bowlingLabel} analysis needs a clear full-body release. This clip does not show a recognisable bowling action.`);
+      throw new Error(`${bowlingLabel} analysis needs a clear release-arm action. This clip does not show a recognisable bowling release.`);
     }
     const bowlingCaptureUnverified = false;
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
