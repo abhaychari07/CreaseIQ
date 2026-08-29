@@ -7,12 +7,32 @@ const landmarkNames = [
 
 let poseLandmarkerPromise;
 let lastPoseTimestamp = 0;
+let batDetectorPromise;
 
 function nextPoseTimestamp() {
   // A reused MediaPipe VIDEO-mode landmarker requires timestamps to increase
   // across every clip, not just within one uploaded file.
   lastPoseTimestamp = Math.max(lastPoseTimestamp + 1, Math.round(performance.now()));
   return lastPoseTimestamp;
+}
+
+async function getBatDetector() {
+  if (!window.cocoSsd) return null;
+  if (!batDetectorPromise) batDetectorPromise = window.cocoSsd.load().catch(() => null);
+  return batDetectorPromise;
+}
+
+async function containsCricketBat(video) {
+  const detector = await getBatDetector();
+  if (!detector) return false;
+  try {
+    const predictions = await detector.detect(video, 5, 0.45);
+    // COCO calls this a baseball bat; it is the closest available detector for
+    // a cricket bat and is used only as a strong batting signal.
+    return predictions.some(prediction => prediction.class === 'baseball bat' && prediction.score >= 0.45);
+  } catch (_) {
+    return false;
+  }
 }
 
 async function getPoseLandmarker() {
@@ -135,10 +155,17 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     let bowlingActionFrames = 0;
     let approvedFastBowlingFrames = 0;
     let approvedSpinBowlingFrames = 0;
+    let batDetectedFrames = 0;
+    const bowlingSelection = technique === 'fast-bowling' || technique === 'spin-bowling';
+    const batCheckFrames = new Set([Math.floor(sampleCount * 0.25), Math.floor(sampleCount * 0.5), Math.floor(sampleCount * 0.75)]);
     for (let index = 0; index < sampleCount; index += 1) {
       const time = video.duration * (0.08 + (0.84 * index / Math.max(sampleCount - 1, 1)));
       onProgress(`Reading body position: frame ${index + 1} of ${sampleCount}...`);
       await seek(video, time);
+      if (bowlingSelection && batCheckFrames.has(index)) {
+        onProgress(`Checking for a batting bat: frame ${index + 1} of ${sampleCount}...`);
+        if (await containsCricketBat(video)) batDetectedFrames += 1;
+      }
       const result = landmarker.detectForVideo(video, nextPoseTimestamp());
       if (!result.landmarks?.[0]) continue;
       const landmarks = normaliseLandmarks(result.landmarks[0]);
@@ -155,7 +182,9 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
     }
-    const bowlingSelection = technique === 'fast-bowling' || technique === 'spin-bowling';
+    if (bowlingSelection && batDetectedFrames >= 1) {
+      throw new Error('This clip contains a cricket bat, so it looks like batting. Select Batting before starting analysis.');
+    }
     const approvedBowlingFrames = technique === 'fast-bowling' ? approvedFastBowlingFrames : approvedSpinBowlingFrames;
     const bowlingCaptureUnverified = bowlingSelection && (bowlingActionFrames < 1 || approvedBowlingFrames < 1);
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
