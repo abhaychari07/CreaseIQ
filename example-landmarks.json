@@ -1,0 +1,12 @@
+{
+  "nose": { "x": 0.51, "y": 0.18 },
+  "left_shoulder": { "x": 0.44, "y": 0.29 },
+  "right_shoulder": { "x": 0.58, "y": 0.30 },
+  "left_hip": { "x": 0.46, "y": 0.52 },
+  "right_hip": { "x": 0.57, "y": 0.53 },
+  "left_elbow": { "x": 0.36, "y": 0.39 },
+  "left_wrist": { "x": 0.27, "y": 0.43 },
+  "left_knee": { "x": 0.40, "y": 0.72 },
+  "left_ankle": { "x": 0.36, "y": 0.91 },
+  "right_ankle": { "x": 0.68, "y": 0.91 }
+}

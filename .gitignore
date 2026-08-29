@@ -1,0 +1,7 @@
+# Local Supabase configuration can stay on your computer.
+supabase-config.js
+
+# System and editor files.
+.DS_Store
+Thumbs.db
+.vscode/

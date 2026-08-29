@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CreaseIQ — Your Cricket Technique Coach</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="professional.css" />
+  </head>
+  <body>
+    <div class="page-glow glow-one"></div><div class="page-glow glow-two"></div>
+    <nav class="nav container"><a class="brand" href="#home"><span class="brand-ball">C</span> CREASE<span>IQ</span></a><div class="nav-links"><a href="#how-it-works">How it works</a><a href="#analysis">My analysis</a><a href="faq.html">FAQ</a><a href="rubrics.html">Coaching rubrics</a><button class="link-button" id="signInButton">Sign in</button><button class="nav-cta" id="navUpload">Analyze a video <span>↗</span></button><button class="profile-nav-button" id="profileButton" aria-label="View player profile" title="View profile">AR</button></div></nav>
+
+    <main id="home">
+      <section class="hero container">
+        <div class="eyebrow"><span></span> CRICKET VIDEO ANALYSIS</div>
+        <h1>See what your<br /><em>next ball</em> needs.</h1>
+        <p class="hero-copy">Upload one clip. Review your movement. Take a specific correction into your next net session.</p>
+        <div class="hero-actions"><button class="primary-button" id="heroUpload">Analyze your technique <span>→</span></button><button class="play-button" id="demoButton"><i>▶</i> See a sample analysis</button></div>
+        <div class="trust"><div class="avatars"><b>AK</b><b>RM</b><b>JS</b><b>+2k</b></div><span>Built for players who want to improve</span></div>
+      </section>
+
+      <section class="dashboard-wrap container" id="analysis">
+        <aside class="sidebar"><div class="sidebar-user"><div class="player-avatar">AR</div><div><strong>Arjun Rao</strong><small>Academy player</small></div></div><div class="side-menu"><button class="active"><span>⌁</span> Overview</button><button><span>◴</span> My sessions</button><button><span>◎</span> Drills</button><button><span>↗</span> Progress</button></div><div class="side-bottom"><small>NEXT NET SESSION</small><strong>Tomorrow, 6:00 AM</strong><button>View plan →</button></div></aside>
+        <div class="dashboard-main">
+          <header class="analysis-header"><div><p class="overline">LATEST ANALYSIS</p><h2>Cover drive <span class="success">• Complete</span></h2></div><button class="text-action" id="newAnalysis">+ New analysis</button></header>
+          <div class="analysis-grid">
+            <article class="video-card"><div class="video-placeholder"><div class="pitch-lines"></div><div class="batter"><div class="head"></div><div class="torso"></div><i class="arm left-arm"></i><i class="arm right-arm"></i><i class="leg left-leg"></i><i class="leg right-leg"></i><i class="bat"></i></div><button class="video-play" id="cardPlay">▶</button><span class="clip-label">SIDE-ON • 12 SEC</span></div><div class="video-footer"><span>Session 09 · Aug 11</span><button>Watch clip ↗</button></div></article>
+            <article class="score-card"><p class="overline">TECHNIQUE SCORE</p><div class="score"><span>78</span><small>/100</small></div><div class="score-line"><span></span></div><p class="up">↑ 6 points from last session</p><div class="rating-list"><div><span>Balance</span><b>86</b></div><div><span>Head position</span><b>74</b></div><div><span>Bat path</span><b>71</b></div></div></article>
+          </div>
+          <section class="findings"><div class="section-title"><div><p class="overline">COACH'S NOTES</p><h3>What to work on next</h3></div><button>View full report →</button></div><div class="finding-cards"><article class="finding focus"><div class="finding-icon">01</div><div><span class="tag">PRIORITY</span><h4>Keep your head inside the ball</h4><p>Your head falls slightly towards off stump at contact. Stay taller through the shot to keep your balance.</p></div><a href="#drills">Try drill →</a></article><article class="finding"><div class="finding-icon">02</div><div><span class="tag neutral">GOOD FOUNDATION</span><h4>Positive front-foot stride</h4><p>You get to the pitch of the ball nicely. Keep this intent as you work on your head position.</p></div><a href="#drills">See detail →</a></article></div></section>
+        </div>
+      </section>
+
+      <section class="how container" id="how-it-works"><div class="section-heading"><div class="eyebrow"><span></span> A CLEARER NET SESSION</div><h2>Record it.<br /><em>Review it.</em></h2></div><div class="steps" id="drills"><article><b>01</b><h3>Film one action</h3><p>Keep the full player visible and capture one shot or complete bowling action.</p></article><article><b>02</b><h3>Check key positions</h3><p>Compare body movement with the coaching checkpoints for that skill.</p></article><article><b>03</b><h3>Practise one correction</h3><p>Use a focused drill before recording the next session.</p></article></div></section>
+    </main>
+
+    <section class="upload-modal" id="uploadModal" aria-hidden="true"><div class="modal-backdrop" id="modalBackdrop"></div><div class="modal"><button class="close" id="closeModal" aria-label="Close">×</button><p class="overline">NEW ANALYSIS</p><h2>Let’s watch your game.</h2><p class="modal-copy">Choose a video from your device. For the best feedback, keep the full body and bat in frame.</p><label class="dropzone" id="dropzone" for="videoInput"><input id="videoInput" type="file" accept="video/*" hidden /><span class="upload-mark">↑</span><strong>Drop your clip here</strong><small>or click to browse · MP4, MOV up to 200MB</small></label><div class="video-preview" id="videoPreview" hidden><video id="uploadedVideo" controls playsinline></video><div class="clip-meta" id="clipMeta"></div><button class="replace-clip" id="replaceClip">Replace clip</button></div><div class="analysis-options"><label>Technique<select id="techniqueSelect"><option value="cover-drive">Cover drive</option><option value="straight-off-drive">Straight drive / Off drive</option><option value="on-drive">On-drive</option><option value="back-foot-punch">Back-foot punch</option><option value="square-late-cut">Square cut / Late cut</option><option value="pull-shot">Pull shot</option><option value="hook-shot">Hook shot</option><option value="forward-defensive">Forward defensive</option><option value="backward-defensive">Backward defensive</option><option value="leave">The leave</option><option value="leg-glance-flick">Leg glance / Flick shot</option><option value="sweep-shot">Sweep shot</option></select></label><label>Camera angle<select id="angleSelect"><option>Side-on</option><option>Front-on</option><option>45 degree</option></select></label></div><div class="shot-types"><button class="selected">Batting</button><button>Fast bowling</button><button>Spin bowling</button></div><button class="primary-button analyze-button" id="startAnalysis" disabled>Check video &amp; start <span>→</span></button><p class="upload-status" id="uploadStatus"></p></div></section>
+    <section class="processing-modal" id="processingModal" aria-hidden="true"><div class="modal-backdrop"></div><div class="modal processing-box"><p class="overline">VIDEO READY</p><h2>Your session is set.</h2><p class="modal-copy" id="processingCopy"></p><div class="quality-checks" id="qualityChecks"></div><button class="primary-button analyze-button" id="viewSession">View session <span>→</span></button></div></section>
+    <section class="demo-modal" id="demoModal" aria-hidden="true"><div class="modal-backdrop demo-backdrop"></div><div class="modal demo-box"><button class="close" id="closeDemo" aria-label="Close">×</button><p class="overline">SAMPLE REPORT</p><h2>See the difference in detail.</h2><div class="sample-bars"><div><span>Head stability</span><i><b style="width:74%"></b></i><strong>74</strong></div><div><span>Front-foot control</span><i><b style="width:86%"></b></i><strong>86</strong></div><div><span>Bat swing plane</span><i><b style="width:71%"></b></i><strong>71</strong></div></div><p class="modal-copy">Every insight is linked to a simple explanation and a drill for your next practice.</p></div></section>
+    <footer class="footer container"><a class="brand" href="#home"><span class="brand-ball">C</span> CREASE<span>IQ</span></a><p>Play with intent. Improve with clarity.</p><span>© 2026 CreaseIQ</span></footer>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="comparison-model.js"></script>
+    <script type="module" src="pose-analyzer.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
