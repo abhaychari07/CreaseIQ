@@ -12,6 +12,8 @@ analysisOptions.insertAdjacentHTML('beforeend', `<label id="fastDeliveryLabel" c
 analysisOptions.insertAdjacentHTML('beforeend', `<label id="paceActionLabel" class="delivery-type-hidden">Bowling action<select id="paceActionSelect"><option value="side-on">Side-on</option><option value="front-on">Front-on</option><option value="semi-open">Semi-open / 45°</option><option value="mixed">Mixed action</option></select></label>`);
 analysisOptions.insertAdjacentHTML('beforeend', `<label id="spinDeliveryLabel" class="delivery-type-hidden">Delivery type<select id="spinDeliverySelect"><optgroup label="Finger spin"><option value="off-spin">Off-break (stock ball)</option><option value="left-arm-orthodox">Left-arm orthodox spin</option><option value="doosra">Doosra</option><option value="carrom-ball">Carrom ball</option><option value="arm-ball">Arm ball</option><option value="knuckle-top-spinner">Knuckle ball / Top spinner</option></optgroup><optgroup label="Wrist spin"><option value="leg-break">Leg-break (stock ball)</option><option value="left-arm-unorthodox">Left-arm unorthodox / Chinaman</option><option value="googly">Googly</option><option value="flipper">Flipper</option><option value="slider">Slider</option><option value="top-spinner">Top-spinner</option></optgroup></select></label>`);
 analysisOptions.insertAdjacentHTML('afterend', `<section id="deliveryRubric" class="delivery-rubric" hidden></section>`);
+analysisOptions.insertAdjacentHTML('afterend', `<p id="fastCaptureGuide" class="fast-capture-guide" hidden><b>Fast-bowling camera guide:</b> use a side-on, front-on, 45° or behind-bowler view. Keep the full run-up, release arm, landing foot and follow-through visible.</p>`);
+analysisOptions.insertAdjacentHTML('afterend', `<p id="spinCaptureGuide" class="fast-capture-guide" hidden><b>Spin-bowling camera guide:</b> use a side-on, front-on, 45° or behind-bowler view. Keep the whole bowler, release arm, landing foot and follow-through visible.</p>`);
 const paceRubrics = {
   outswinger: { title: 'Outswinger', seam: 'Angled toward the slips (off-side).', air: 'Moves away from a right-handed batter.', pitch: 'Continues away or holds its line after landing.', use: 'Early in the match with a new, shiny ball.' },
   inswinger: { title: 'Inswinger', seam: 'Angled toward fine leg or leg slip (leg-side).', air: 'Moves inward toward a right-handed batter.', pitch: 'Straightens or darts into the pads after pitching.', use: 'Target the stumps or trap a batter LBW.' },
@@ -141,6 +143,8 @@ document.querySelectorAll('.shot-types button').forEach(button => button.addEven
   document.getElementById('spinDeliveryLabel').classList.toggle('delivery-type-hidden', !isSpinBowling);
   const deliveryRubric = document.getElementById('deliveryRubric');
   deliveryRubric.hidden = true;
+  document.getElementById('fastCaptureGuide').hidden = !isFastBowling;
+  document.getElementById('spinCaptureGuide').hidden = !isSpinBowling;
   startButton.disabled = !uploadedFile;
   status.textContent = isBatting
     ? (uploadedFile ? 'Clip loaded. Choose the technique and camera angle.' : '')
@@ -195,7 +199,7 @@ startButton.addEventListener('click', async () => {
   }
   document.getElementById('processingCopy').textContent = `Your ${technique.toLowerCase()} clip is ready for review. The ${angle.toLowerCase()} angle gives the coach a usable view of your movement. ${storageNote}`;
   document.getElementById('qualityChecks').innerHTML = `<div><span>Video format</span><span>Ready</span></div><div><span>Technique</span><span>${technique}</span></div><div><span>Camera angle</span><span>${angle}</span></div>`;
-  await runPoseAnalysis({ file: uploadedFile, technique: techniqueKey, reference, session: savedSession, viewSessionButton });
+  await runPoseAnalysis({ file: uploadedFile, technique: techniqueKey, reference, cameraAngle: angle, session: savedSession, viewSessionButton });
 });
 
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]); }
@@ -219,13 +223,13 @@ function updateDashboardFromReport(report) {
   }
 }
 
-async function runPoseAnalysis({ file, technique, reference, session, viewSessionButton }) {
+async function runPoseAnalysis({ file, technique, reference, cameraAngle, session, viewSessionButton }) {
   try {
     if (session) await window.CreaseIQStorage.updateSessionStatus(session.id, 'processing');
     if (!window.CreaseIQPose) throw new Error('The pose-analysis engine is still loading. Refresh once and try again.');
     const stance = activeProfile?.batting_hand || 'right';
     const report = await window.CreaseIQPose.analyzeFile(file, {
-      technique, stance, reference,
+      technique, stance, reference, cameraAngle,
       onProgress: message => { document.getElementById('processingCopy').textContent = message; }
     });
     updateDashboardFromReport(report);
@@ -267,7 +271,7 @@ function showInfo(title, message, items = []) {
 }
 
 async function openSavedSessions() {
-  if (!window.CreaseIQStorage.configured()) { showInfo('Sessions are not connected yet', 'Connect Supabase to save and view sessions across devices.'); return; }
+  if (!window.CreaseIQStorage.configured()) { showInfo('Sessions are not connected yet', 'Account saving has not been set up yet.'); return; }
   if (!activeUser) { showInfo('Sign in to view sessions', 'Your saved videos and reports are private to your player account.'); return; }
   const panel = document.createElement('section');
   panel.className = 'demo-modal open';
@@ -331,7 +335,7 @@ async function openSavedSession(sessionId) {
 }
 
 async function openProgress() {
-  if (!window.CreaseIQStorage.configured()) { showInfo('Progress is not connected yet', 'Connect Supabase to see scores across saved sessions.'); return; }
+  if (!window.CreaseIQStorage.configured()) { showInfo('Progress is not connected yet', 'Account saving has not been set up yet.'); return; }
   if (!activeUser) { showInfo('Sign in to view progress', 'Your score trend is built from sessions saved to your player account.'); return; }
   const panel = document.createElement('section');
   panel.className = 'demo-modal open';
@@ -377,12 +381,12 @@ async function openProgress() {
 
 function openSignIn() {
   if (!window.CreaseIQStorage.configured()) {
-    showInfo('Storage is not connected yet', 'Add your Supabase Project URL and publishable key in supabase-config.js, then this sign-in button will send a secure email link.');
+    showInfo('Accounts are not ready yet', 'Account saving is still being set up. Please try again shortly.');
     return;
   }
   const panel = document.createElement('section');
   panel.className = 'demo-modal open sign-in-modal';
-  panel.innerHTML = `<div class="modal-backdrop"></div><div class="modal sign-in-box"><button class="close" aria-label="Close">×</button><p class="overline">WELCOME TO CREASEIQ</p><div class="confirmation-icon">↗</div><h2>Sign in to save progress.</h2><p class="modal-copy">Enter your email and we’ll send a secure sign-in link. No password needed.</p><form id="signInForm" class="profile-form"><label>Email address<input id="signInEmail" type="email" autocomplete="email" required placeholder="you@example.com" /></label><button class="primary-button analyze-button" type="submit">Send secure link <span>→</span></button><p class="upload-status" id="signInStatus"></p></form></div>`;
+  panel.innerHTML = `<div class="modal-backdrop"></div><div class="modal sign-in-box"><button class="close" aria-label="Close">×</button><p class="overline">WELCOME TO CREASEIQ</p><div class="confirmation-icon">↗</div><h2>Create or sign in to your player account.</h2><p class="modal-copy">Enter your email and we’ll send a secure link. New players get a CreaseIQ account automatically — no password needed.</p><form id="signInForm" class="profile-form"><label>Email address<input id="signInEmail" type="email" autocomplete="email" required placeholder="you@example.com" /></label><button class="primary-button analyze-button" type="submit">Continue with email <span>→</span></button><p class="upload-status" id="signInStatus"></p></form></div>`;
   document.body.append(panel);
   const close = () => panel.remove();
   panel.querySelector('.close').addEventListener('click', close);
@@ -472,7 +476,7 @@ if (window.CreaseIQStorage.configured()) {
 
 async function openProfileView() {
   if (!window.CreaseIQStorage.configured()) {
-    showInfo('Profile unavailable', 'Connect Supabase and sign in to create a player profile.');
+    showInfo('Profile unavailable', 'Account saving has not been set up yet.');
     return;
   }
   const user = activeUser || await window.CreaseIQStorage.currentUser();

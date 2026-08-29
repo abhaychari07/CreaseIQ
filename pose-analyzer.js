@@ -94,16 +94,51 @@ function looksLikeBowlingAction(landmarks) {
   if (!leftShoulder || !rightShoulder) return false;
   const shoulderWidth = Math.hypot(leftShoulder.x - rightShoulder.x, leftShoulder.y - rightShoulder.y);
   return ['left', 'right'].some(side => {
-    const shoulder = landmarks[`${side}_shoulder`], wrist = landmarks[`${side}_wrist`], elbow = landmarks[`${side}_elbow`];
-    if (!shoulder || !wrist || !elbow || (wrist.visibility ?? 0) < 0.45) return false;
+    const otherSide = side === 'left' ? 'right' : 'left';
+    const shoulder = landmarks[`${side}_shoulder`], wrist = landmarks[`${side}_wrist`], elbow = landmarks[`${side}_elbow`], otherWrist = landmarks[`${otherSide}_wrist`];
+    if (!shoulder || !wrist || !elbow || !otherWrist || (wrist.visibility ?? 0) < 0.45 || (otherWrist.visibility ?? 0) < 0.45 || shoulderWidth < 0.02) return false;
     const armReach = Math.hypot(wrist.x - shoulder.x, wrist.y - shoulder.y);
     const overhead = wrist.y < Math.min(shoulder.y, landmarks.nose?.y ?? shoulder.y) - (shoulderWidth * 0.18);
     const nearVertical = Math.abs(wrist.x - shoulder.x) < shoulderWidth * 0.75;
-    return overhead && nearVertical && armReach > shoulderWidth * 0.7;
+    const elbowRaised = elbow.y < shoulder.y + shoulderWidth * 0.2;
+    // A batting follow-through can put a hand above the shoulder. It cannot
+    // have the bowling-arm release AND the non-bowling arm pulled down at once.
+    const otherArmPulledDown = otherWrist.y > shoulder.y + shoulderWidth * 0.45;
+    const splitArms = Math.hypot(wrist.x - otherWrist.x, wrist.y - otherWrist.y) > shoulderWidth * 1.25;
+    return overhead && nearVertical && elbowRaised && otherArmPulledDown && splitArms && armReach > shoulderWidth * 0.85;
   });
 }
 
-async function analyzeFile(file, { technique, stance = 'right', reference = 'professional', onProgress = () => {} }) {
+function hasApprovedFastBowlingFraming(landmarks) {
+  const required = ['nose', 'left_shoulder', 'right_shoulder', 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle'];
+  return required.every(name => (landmarks[name]?.visibility ?? 0) >= 0.55);
+}
+
+function hasApprovedSpinBowlingFraming(landmarks) {
+  const required = ['nose', 'left_shoulder', 'right_shoulder', 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle'];
+  return required.every(name => (landmarks[name]?.visibility ?? 0) >= 0.5);
+}
+
+function hasBowlingApproachMotion(samples) {
+  if (samples.length < 3) return false;
+  const shoulderWidths = samples.map(sample => sample.shoulderWidth).filter(width => width > 0.02).sort((a, b) => a - b);
+  if (!shoulderWidths.length) return false;
+  const referenceWidth = shoulderWidths[Math.floor(shoulderWidths.length / 2)];
+  let maxDisplacement = 0;
+  let travel = 0;
+  for (let index = 1; index < samples.length; index += 1) {
+    const previous = samples[index - 1].centre;
+    const current = samples[index].centre;
+    const step = Math.hypot(current.x - previous.x, current.y - previous.y);
+    travel += step;
+    maxDisplacement = Math.max(maxDisplacement, Math.hypot(current.x - samples[0].centre.x, current.y - samples[0].centre.y));
+  }
+  // A bowler crosses into a delivery stride. A batter normally stays around a
+  // stable batting base, even during a high follow-through.
+  return maxDisplacement > referenceWidth * 0.7 || travel > referenceWidth * 1.15;
+}
+
+async function analyzeFile(file, { technique, stance = 'right', reference = 'professional', cameraAngle = '', onProgress = () => {} }) {
   onProgress('Loading the body-pose model...');
   const landmarker = await getPoseLandmarker();
   const video = document.createElement('video');
@@ -117,6 +152,9 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     const sampleCount = Math.min(12, Math.max(10, Math.round(video.duration * 1.2)));
     const candidates = [];
     let bowlingActionFrames = 0;
+    let approvedFastBowlingFrames = 0;
+    let approvedSpinBowlingFrames = 0;
+    const motionSamples = [];
     for (let index = 0; index < sampleCount; index += 1) {
       const time = video.duration * (0.08 + (0.84 * index / Math.max(sampleCount - 1, 1)));
       onProgress(`Reading body position: frame ${index + 1} of ${sampleCount}...`);
@@ -127,6 +165,15 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
       const coverage = usableLandmarkCount(landmarks);
       if (coverage < 7) continue;
       if (looksLikeBowlingAction(landmarks)) bowlingActionFrames += 1;
+      if (hasApprovedFastBowlingFraming(landmarks)) approvedFastBowlingFrames += 1;
+      if (hasApprovedSpinBowlingFraming(landmarks)) approvedSpinBowlingFrames += 1;
+      const leftShoulder = landmarks.left_shoulder, rightShoulder = landmarks.right_shoulder, leftHip = landmarks.left_hip, rightHip = landmarks.right_hip;
+      if (leftShoulder && rightShoulder && leftHip && rightHip) {
+        motionSamples.push({
+          centre: { x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4, y: (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4 },
+          shoulderWidth: Math.hypot(leftShoulder.x - rightShoulder.x, leftShoulder.y - rightShoulder.y)
+        });
+      }
       const report = window.CreaseIQComparison.compare(landmarks, technique, { stance, reference });
       candidates.push({ coverage, framing: playerFraming(landmarks), time, report, landmarks });
     }
@@ -134,6 +181,13 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     const isBattingSelection = !['fast-bowling', 'spin-bowling'].includes(technique);
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
+    }
+    const bowlingApproachDetected = hasBowlingApproachMotion(motionSamples);
+    if (technique === 'fast-bowling' && (bowlingActionFrames < 2 || approvedFastBowlingFrames < 2 || !bowlingApproachDetected)) {
+      throw new Error(`Fast-bowling analysis needs a clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; move the camera back and keep the whole delivery stride in frame.`);
+    }
+    if (technique === 'spin-bowling' && (bowlingActionFrames < 2 || approvedSpinBowlingFrames < 2 || !bowlingApproachDetected)) {
+      throw new Error(`Spin-bowling analysis needs a clear full-body spin release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; move the camera back and keep the release arm, landing foot and follow-through visible.`);
     }
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
     candidates.sort((a, b) => (b.coverage * 10 + b.report.findings.length) - (a.coverage * 10 + a.report.findings.length));

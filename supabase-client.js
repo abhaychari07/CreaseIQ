@@ -10,6 +10,7 @@
   };
   const fileExtension = file => (file.name.split('.').pop() || 'mp4').toLowerCase();
   const safeFileName = file => `${crypto.randomUUID()}.${fileExtension(file)}`;
+  const accountServiceUnavailable = () => new Error('Account saving is not ready yet.');
 
   async function currentUser() {
     const db = client();
@@ -20,9 +21,14 @@
 
   async function signIn(email) {
     const db = client();
-    if (!db) throw new Error('Supabase is not configured yet.');
-    const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-    if (error) throw error;
+    if (!db) throw accountServiceUnavailable();
+    const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin, shouldCreateUser: true } });
+    if (error) {
+      if (/signup|sign up|new user/i.test(error.message || '')) {
+        throw new Error('New CreaseIQ player accounts are not available right now. Please try again later.');
+      }
+      throw new Error('We could not send your CreaseIQ sign-in link. Check the email address and try again.');
+    }
   }
 
   async function getProfile(userId) {
@@ -35,7 +41,7 @@
 
   async function updateProfile({ userId, displayName, battingHand, academyName }) {
     const db = client();
-    if (!db) throw new Error('Supabase is not configured yet.');
+    if (!db) throw accountServiceUnavailable();
     const { data, error } = await db.from('profiles').upsert({
       id: userId,
       display_name: displayName,
@@ -120,7 +126,7 @@
 
   async function getSession(sessionId) {
     const db = client();
-    if (!db) throw new Error('Supabase is not configured yet.');
+    if (!db) throw accountServiceUnavailable();
     const { data: session, error } = await db.from('sessions').select('*').eq('id', sessionId).single();
     if (error) throw error;
     const { data: analysis, error: analysisError } = await db.from('analyses').select('*').eq('session_id', sessionId).maybeSingle();
@@ -132,7 +138,7 @@
 
   async function deleteSession({ sessionId, videoPath }) {
     const db = client();
-    if (!db) throw new Error('Supabase is not configured yet.');
+    if (!db) throw accountServiceUnavailable();
     if (videoPath) {
       const { error: videoError } = await db.storage.from('cricket-videos').remove([videoPath]);
       if (videoError) throw videoError;
@@ -143,7 +149,7 @@
 
   async function clearSessions() {
     const db = client();
-    if (!db) throw new Error('Supabase is not configured yet.');
+    if (!db) throw accountServiceUnavailable();
     const user = await currentUser();
     if (!user) throw new Error('Sign in to manage session history.');
     const { data: sessions, error: listError } = await db.from('sessions').select('id, video_path').eq('user_id', user.id);
