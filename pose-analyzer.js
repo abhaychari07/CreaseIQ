@@ -139,7 +139,7 @@ function hasApprovedSpinBowlingFraming(landmarks) {
   return required.every(name => (landmarks[name]?.visibility ?? 0) >= 0.5);
 }
 
-async function analyzeFile(file, { technique, stance = 'right', reference = 'professional', cameraAngle = '', onProgress = () => {} }) {
+async function analyzeFile(file, { technique, stance = 'right', reference = 'professional', cameraAngle = '', allowUnverifiedBowling = false, onProgress = () => {} }) {
   onProgress('Loading the body-pose model...');
   const landmarker = await getPoseLandmarker();
   const video = document.createElement('video');
@@ -188,11 +188,13 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (bowlingSelection && batDetectedFrames >= 1) {
       throw new Error('This clip contains a cricket bat, so it looks like batting. Select Batting before starting analysis.');
     }
-    if (bowlingSelection && bowlingActionFrames < 1) {
+    const bowlingCaptureUnverified = bowlingSelection && bowlingActionFrames < 1;
+    if (bowlingCaptureUnverified && !allowUnverifiedBowling) {
       const bowlingLabel = technique === 'fast-bowling' ? 'Fast-bowling' : 'Spin-bowling';
-      throw new Error(`${bowlingLabel} analysis needs a clear release-arm action. This clip does not show a recognisable bowling release.`);
+      const error = new Error(`${bowlingLabel} analysis could not automatically verify a release-arm action.`);
+      error.code = 'UNVERIFIED_BOWLING_CAPTURE';
+      throw error;
     }
-    const bowlingCaptureUnverified = false;
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
     candidates.sort((a, b) => (b.coverage * 10 + b.report.findings.length) - (a.coverage * 10 + a.report.findings.length));
     const selected = candidates[0];
