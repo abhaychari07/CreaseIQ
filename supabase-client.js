@@ -25,6 +25,13 @@
     const publicAppUrl = configuration.appUrl || window.location.origin;
     const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: publicAppUrl, shouldCreateUser: true } });
     if (error) {
+      const message = error.message || '';
+      if (/redirect|redirect_to|url not allowed/i.test(message)) {
+        throw new Error('Email sign-in is waiting for the public site URL to be allowed in Supabase Authentication → URL Configuration → Redirect URLs.');
+      }
+      if (/rate limit|too many/i.test(message)) {
+        throw new Error('Too many sign-in emails were requested. Wait a few minutes, then try again.');
+      }
       if (/signup|sign up|new user/i.test(error.message || '')) {
         throw new Error('New CreaseIQ player accounts are not available right now. Please try again later.');
       }
