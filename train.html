@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CreaseIQ — Private action trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="professional.css" />
+  </head>
+  <body>
+    <main class="container" style="padding-block:56px 80px;max-width:900px">
+      <a class="brand" href="index.html"><span class="brand-ball">C</span> CREASE<span>IQ</span></a>
+      <section class="profile-view" style="margin-top:32px">
+        <p class="overline">PRIVATE TRAINING TOOL</p>
+        <h1 style="margin:10px 0 12px">Build the action classifier.</h1>
+        <p class="modal-copy">Select the reference recordings from your computer. They are processed only in this browser; the resulting model contains numeric movement patterns, not video clips.</p>
+        <form id="trainerForm" class="profile-form" style="margin-top:28px">
+          <label>Batting references<input type="file" id="battingFiles" accept="video/*" multiple required /></label>
+          <label>Fast-bowling references<input type="file" id="fastFiles" accept="video/*" multiple required /></label>
+          <label>Spin-bowling references<input type="file" id="spinFiles" accept="video/*" multiple required /></label>
+          <label>Not-cricket references<input type="file" id="otherFiles" accept="video/*" multiple required /></label>
+          <button class="primary-button analyze-button" type="submit">Create private model <span>→</span></button>
+          <p id="trainerStatus" class="upload-status" aria-live="polite"></p>
+        </form>
+        <div id="trainerResult" hidden style="margin-top:26px"><p class="modal-copy">Training complete. Download the model and attach the downloaded JSON here. I will add only that model file to CreaseIQ.</p><button id="downloadModel" class="primary-button analyze-button">Download model <span>↓</span></button></div>
+      </section>
+    </main>
+    <script type="module" src="train.js"></script>
+  </body>
+</html>
