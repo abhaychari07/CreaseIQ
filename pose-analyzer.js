@@ -119,25 +119,6 @@ function hasApprovedSpinBowlingFraming(landmarks) {
   return required.every(name => (landmarks[name]?.visibility ?? 0) >= 0.5);
 }
 
-function hasBowlingApproachMotion(samples) {
-  if (samples.length < 3) return false;
-  const shoulderWidths = samples.map(sample => sample.shoulderWidth).filter(width => width > 0.02).sort((a, b) => a - b);
-  if (!shoulderWidths.length) return false;
-  const referenceWidth = shoulderWidths[Math.floor(shoulderWidths.length / 2)];
-  let maxDisplacement = 0;
-  let travel = 0;
-  for (let index = 1; index < samples.length; index += 1) {
-    const previous = samples[index - 1].centre;
-    const current = samples[index].centre;
-    const step = Math.hypot(current.x - previous.x, current.y - previous.y);
-    travel += step;
-    maxDisplacement = Math.max(maxDisplacement, Math.hypot(current.x - samples[0].centre.x, current.y - samples[0].centre.y));
-  }
-  // A bowler crosses into a delivery stride. A batter normally stays around a
-  // stable batting base, even during a high follow-through.
-  return maxDisplacement > referenceWidth * 0.7 || travel > referenceWidth * 1.15;
-}
-
 async function analyzeFile(file, { technique, stance = 'right', reference = 'professional', cameraAngle = '', onProgress = () => {} }) {
   onProgress('Loading the body-pose model...');
   const landmarker = await getPoseLandmarker();
@@ -154,7 +135,6 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     let bowlingActionFrames = 0;
     let approvedFastBowlingFrames = 0;
     let approvedSpinBowlingFrames = 0;
-    const motionSamples = [];
     for (let index = 0; index < sampleCount; index += 1) {
       const time = video.duration * (0.08 + (0.84 * index / Math.max(sampleCount - 1, 1)));
       onProgress(`Reading body position: frame ${index + 1} of ${sampleCount}...`);
@@ -167,13 +147,6 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
       if (looksLikeBowlingAction(landmarks)) bowlingActionFrames += 1;
       if (hasApprovedFastBowlingFraming(landmarks)) approvedFastBowlingFrames += 1;
       if (hasApprovedSpinBowlingFraming(landmarks)) approvedSpinBowlingFrames += 1;
-      const leftShoulder = landmarks.left_shoulder, rightShoulder = landmarks.right_shoulder, leftHip = landmarks.left_hip, rightHip = landmarks.right_hip;
-      if (leftShoulder && rightShoulder && leftHip && rightHip) {
-        motionSamples.push({
-          centre: { x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4, y: (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4 },
-          shoulderWidth: Math.hypot(leftShoulder.x - rightShoulder.x, leftShoulder.y - rightShoulder.y)
-        });
-      }
       const report = window.CreaseIQComparison.compare(landmarks, technique, { stance, reference });
       candidates.push({ coverage, framing: playerFraming(landmarks), time, report, landmarks });
     }
@@ -182,11 +155,10 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
     }
-    const bowlingApproachDetected = hasBowlingApproachMotion(motionSamples);
-    if (technique === 'fast-bowling' && (bowlingActionFrames < 2 || approvedFastBowlingFrames < 2 || !bowlingApproachDetected)) {
+    if (technique === 'fast-bowling' && (bowlingActionFrames < 2 || approvedFastBowlingFrames < 2)) {
       throw new Error(`Fast-bowling analysis needs a clear full-body release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; move the camera back and keep the whole delivery stride in frame.`);
     }
-    if (technique === 'spin-bowling' && (bowlingActionFrames < 2 || approvedSpinBowlingFrames < 2 || !bowlingApproachDetected)) {
+    if (technique === 'spin-bowling' && (bowlingActionFrames < 2 || approvedSpinBowlingFrames < 2)) {
       throw new Error(`Spin-bowling analysis needs a clear full-body spin release from a side-on, front-on, 45° or behind-bowler view. The selected angle is ${cameraAngle || 'not set'}; move the camera back and keep the release arm, landing foot and follow-through visible.`);
     }
     // Without ball tracking, choose the frame with the best whole-body coverage and most complete report.
