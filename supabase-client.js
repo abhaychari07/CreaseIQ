@@ -22,7 +22,8 @@
   async function signIn(email) {
     const db = client();
     if (!db) throw accountServiceUnavailable();
-    const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin, shouldCreateUser: true } });
+    const publicAppUrl = configuration.appUrl || window.location.origin;
+    const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: publicAppUrl, shouldCreateUser: true } });
     if (error) {
       if (/signup|sign up|new user/i.test(error.message || '')) {
         throw new Error('New CreaseIQ player accounts are not available right now. Please try again later.');
