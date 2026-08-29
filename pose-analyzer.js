@@ -179,6 +179,12 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     }
     if (!candidates.length) throw new Error('No clear full-body pose was found. Try a brighter side-on clip with your entire body and bat visible.');
     const isBattingSelection = !['fast-bowling', 'spin-bowling'].includes(technique);
+    const expectedAction = isBattingSelection ? 'batting' : technique;
+    const actionClassification = window.CreaseIQActionClassifier?.classify(candidates.map(candidate => candidate.landmarks));
+    if (actionClassification && actionClassification.confidence >= 0.1 && actionClassification.label !== expectedAction) {
+      const readable = { batting: 'Batting', 'fast-bowling': 'Fast bowling', 'spin-bowling': 'Spin bowling', 'not-cricket': 'Not cricket' };
+      throw new Error(`This clip is classified as ${readable[actionClassification.label]} (${Math.round(actionClassification.confidence * 100)}% confidence), not ${readable[expectedAction]}. Choose the matching analysis type.`);
+    }
     if (isBattingSelection && bowlingActionFrames >= 1) {
       throw new Error('This clip looks like a bowling action. Select Fast bowling or Spin bowling before starting analysis.');
     }
@@ -200,7 +206,7 @@ async function analyzeFile(file, { technique, stance = 'right', reference = 'pro
     const selected = candidates[0];
     const framing = selected.framing;
     if (framing.headroom < 0.05) throw new Error('Leave more space above the player’s head before recording (at least 5% of the frame height).');
-    return { ...selected.report, frameTime: Number(selected.time.toFixed(2)), framesChecked: sampleCount, landmarkCoverage: selected.coverage, bowlingCaptureUnverified, quality: { width: video.videoWidth, height: video.videoHeight, playerCoverage: Math.round(framing.coverage * 100), headroom: Math.round(framing.headroom * 100) } };
+    return { ...selected.report, frameTime: Number(selected.time.toFixed(2)), framesChecked: sampleCount, landmarkCoverage: selected.coverage, bowlingCaptureUnverified, actionClassification, quality: { width: video.videoWidth, height: video.videoHeight, playerCoverage: Math.round(framing.coverage * 100), headroom: Math.round(framing.headroom * 100) } };
   } finally {
     URL.revokeObjectURL(url);
     video.removeAttribute('src'); video.load();
